@@ -11,38 +11,38 @@ from datetime import datetime
 import pandas as pd
 import pandasql as ps
 from pandas import json_normalize
-from urllib.parse import quote_plus
+import boto3
 
 def lambda_handler(event, context):
     # TODO implement
-    
+   
     gainers_url = ("https://financialmodelingprep.com/api/v3/stock_market/gainers?apikey=X")
     response = urlopen(gainers_url, cafile=certifi.where())
     data0 = response.read().decode("utf-8")
     data = json.loads(data0)
-    
+   
     dics = []
-    
+   
     for count,record in enumerate(data):
         dics.append(data[count]['symbol'])
-        
+       
     string = ""
-    
+   
     for l in dics:
      if l != dics[-1]:
           string = string + str(l) + ","
      else:
          string = string + str(l)
-      
+     
     quotesurl = ("https://financialmodelingprep.com/api/v3/quote/" + string + "?apikey=X")
 
     response = urlopen(quotesurl, cafile=certifi.where())
     data0 = response.read().decode("utf-8")
     data = json.loads(data0)
-    
+   
     df = pd.DataFrame(data)    
     top_gainers = ps.sqldf("""
-    SELECT 
+    SELECT
     symbol
     ,cast(price as float) as price
     ,cast(dayHigh as float) as dayHigh
@@ -50,11 +50,15 @@ def lambda_handler(event, context):
     ,cast(((price-open)/open)*100 as float) as gains_since_open
     ,cast(((dayHigh-price)/dayHigh)*100 as float) as percent_off_high
     ,cast(changesPercentage as float) as gains_since_prev_close
-    FROM df 
-    WHERE gains_since_open > percent_off_high 
+    FROM df
+    WHERE gains_since_open > percent_off_high
     ORDER BY (price-open)/open DESC
     """)
-    
-    top_gainers.to_json(r's3://gainerbucket/gainers/gainers.json',orient='index')
-    
-    return top_gainers
+   
+    js = top_gainers.to_json(orient='values')
+    data = json.dumps(js)
+   
+    client = boto3.client('s3')
+    client.put_object(Body=data, Bucket='gainerbucket', Key='gainers/gainers.txt')
+   
+    return data
