@@ -11,12 +11,12 @@ from datetime import datetime
 import pandas as pd
 import pandasql as ps
 from pandas import json_normalize
-import boto3
+from urllib.parse import quote_plus
 
 def lambda_handler(event, context):
     # TODO implement
    
-    gainers_url = ("https://financialmodelingprep.com/api/v3/stock_market/gainers?apikey=X")
+    gainers_url = ("https://financialmodelingprep.com/api/v3/stock_market/gainers?apikey=6b4b904395c21556ecebd076e5643679")
     response = urlopen(gainers_url, cafile=certifi.where())
     data0 = response.read().decode("utf-8")
     data = json.loads(data0)
@@ -34,7 +34,7 @@ def lambda_handler(event, context):
      else:
          string = string + str(l)
      
-    quotesurl = ("https://financialmodelingprep.com/api/v3/quote/" + string + "?apikey=X")
+    quotesurl = ("https://financialmodelingprep.com/api/v3/quote/" + string + "?apikey=6b4b904395c21556ecebd076e5643679")
 
     response = urlopen(quotesurl, cafile=certifi.where())
     data0 = response.read().decode("utf-8")
@@ -44,21 +44,22 @@ def lambda_handler(event, context):
     top_gainers = ps.sqldf("""
     SELECT
     symbol
-    ,cast(price as float) as price
-    ,cast(dayHigh as float) as dayHigh
-    ,cast(open as float) as open
-    ,cast(((price-open)/open)*100 as float) as gains_since_open
-    ,cast(((dayHigh-price)/dayHigh)*100 as float) as percent_off_high
-    ,cast(changesPercentage as float) as gains_since_prev_close
+    ,round(price,2) as price
+    ,round(dayHigh,2) as day_high
+    ,round(open,2) as open
+    ,round((price-open)/open*100,2) || '%' as gain_since_open
+    ,round((dayHigh-price)/dayHigh*100,2) || '%' as percent_off_high
+    ,round(changesPercentage,2) || '%' as gains_since_prev_close
+    ,timestamp
     FROM df
-    WHERE gains_since_open > percent_off_high
+    WHERE gain_since_open > percent_off_high
+    AND symbol NOT IN ('NaN','NA')
+    AND symbol IS NOT NULL
     ORDER BY (price-open)/open DESC
     """)
    
-    js = top_gainers.to_json(orient='values')
-    data = json.dumps(js)
+    top_gainers['timestamp'] = [datetime.fromtimestamp(x) for x in top_gainers['timestamp']]
    
-    client = boto3.client('s3')
-    client.put_object(Body=data, Bucket='gainerbucket', Key='gainers/gainers.txt')
+    top_gainers.to_csv('s3://gainerbucket/gainers.csv')
    
-    return data
+    return top_gainers
