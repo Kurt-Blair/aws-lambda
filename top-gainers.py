@@ -11,7 +11,7 @@ from datetime import datetime
 import pandas as pd
 import pandasql as ps
 from pandas import json_normalize
-from urllib.parse import quote_plus
+import boto3
 
 def lambda_handler(event, context):
     # TODO implement
@@ -55,6 +55,10 @@ def lambda_handler(event, context):
     ORDER BY (price-open)/open DESC
     """)
     
-    top_gainers.to_json(r's3://gainerbucket/gainers/gainers.json',orient='index')
+    js = top_gainers.to_json(orient='values')
+    data = json.dumps(js)
     
-    return top_gainers
+    client = boto3.client('s3')
+    client.put_object(Body=data, Bucket='gainerbucket', Key='gainers/gainers.txt')
+    
+    return data
