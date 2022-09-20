@@ -16,7 +16,7 @@ from urllib.parse import quote_plus
 def lambda_handler(event, context):
     # TODO implement
    
-    gainers_url = ("https://financialmodelingprep.com/api/v3/stock_market/gainers?apikey=6b4b904395c21556ecebd076e5643679")
+    gainers_url = ("https://financialmodelingprep.com/api/v3/stock_market/gainers?apikey=X")
     response = urlopen(gainers_url, cafile=certifi.where())
     data0 = response.read().decode("utf-8")
     data = json.loads(data0)
@@ -34,7 +34,7 @@ def lambda_handler(event, context):
      else:
          string = string + str(l)
      
-    quotesurl = ("https://financialmodelingprep.com/api/v3/quote/" + string + "?apikey=6b4b904395c21556ecebd076e5643679")
+    quotesurl = ("https://financialmodelingprep.com/api/v3/quote/" + string + "?apikey=X")
 
     response = urlopen(quotesurl, cafile=certifi.where())
     data0 = response.read().decode("utf-8")
