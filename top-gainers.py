@@ -21,15 +21,15 @@ def lambda_handler(event, context):
     data0 = response.read().decode("utf-8")
     data = json.loads(data0)
    
-    dics = []
+    lis = []
    
     for count,record in enumerate(data):
-        dics.append(data[count]['symbol'])
+        lis.append(data[count]['symbol'])
        
     string = ""
    
-    for l in dics:
-     if l != dics[-1]:
+    for l in lis:
+     if l != lis[-1]:
           string = string + str(l) + ","
      else:
          string = string + str(l)
